@@ -12,6 +12,8 @@
  * Distance measure based on code from https://playground.arduino.cc/Code/SfLCD2/
  * 
  * 
+ * Intended for 5V Arduino Pro Mini
+ * 
  * D. Q. McDonald
  * December 2021
  */
