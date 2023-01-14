@@ -46,7 +46,7 @@ const int BUTTON_PIN = 7;
 const int TIMER_POT_PIN = A0;
 const long int UPDATE_INTERVAL = 1000 * 120l; // Update display every 120 seconds
 const int MAX_PUMP_TIME = 3600; // Pump on for at most an hour
-const int AUTO_HOUR_FREQ = 24*60;  // Turn pump automatically every three days - time in minutes
+const int AUTO_HOUR_FREQ = 48*60;  // Turn pump automatically every two days - time in minutes
 const long int AUTO_PUMP_INTERVAL = 1000 * 60l; // Check for auto-pump every minute
 const double MIN_LEVEL_FOR_AUTO = 10.0;
 
@@ -71,11 +71,11 @@ int auto_pump_min_counter = 0; // The number of minutes since we've auto watered
 
 bool do_update = false;
 void update_display(void);
-void update_cb(void);
+bool update_cb(void*);
 void pump_button_pressed(void);
 void change_pump_state( bool pump_state ) ;
-void pump_cb(void);
-void auto_pump_cb(void);
+bool pump_cb(void*);
+bool auto_pump_cb(void*);
 
 Timer<1, millis> update_timer;
 Timer<1, millis> pump_timer;
@@ -260,22 +260,26 @@ void update_display(void) {
   tft.println("%");
 
   if ( not pump_on ) {
-    tft.setCursor(20, 150);
+    tft.setCursor(20, 140);
     tft.setTextSize(3);
     tft.setTextColor(ILI9341_DARKGREEN);
     tft.print("Pump time:");
     int on_time = (calculate_pump_on_time() / 60) + 1;
     tft.print(on_time);
     tft.println(" min");
-    tft.setCursor(20, 190);
+    tft.setCursor(20, 180);
     tft.setTextSize(3);
     tft.setTextColor(ILI9341_PURPLE);
     tft.print("Auto time:");
     int auto_time = AUTO_HOUR_FREQ - auto_pump_min_counter;
-    tft.print(int(auto_time/60));
+    tft.print(int(auto_time/60)+1);
     tft.println(" hrs");
     Serial.print("Minutes to auto = ");
     Serial.println(int(auto_time));
+    tft.setCursor(20, 210);
+    tft.setTextSize(2);
+    tft.println(auto_pump_min_counter);
+    
   } else {
     rect_width = 280;
     rect_height  = 60;
@@ -332,12 +336,14 @@ void change_pump_state( bool pump_state ) {
 
 }
 
-void update_cb(void) {
+bool update_cb(void*) {
   // Call back for update timer
   do_update = true;
+  return true;
 }
 
-void auto_pump_cb(void) {
+bool auto_pump_cb(void*) {
+  // A
   auto_pump_min_counter = auto_pump_min_counter + 1;
 
   // If time is up and level if greater than 10% then pump now:
@@ -347,9 +353,10 @@ void auto_pump_cb(void) {
     change_pump_state(pump_on);
     do_update = true;
   }
+  return true;
 }
 
-void pump_cb(void) {
+bool pump_cb(void*) {
   // Callback for pump timer
   Serial.println("Pump timer finished");
   pump_on = false;
@@ -357,6 +364,7 @@ void pump_cb(void) {
   do_update = true;
   // Reset auto watering:
   auto_pump_min_counter = 0;
+  return false;
 }
 
 long int calculate_pump_on_time(void) {
